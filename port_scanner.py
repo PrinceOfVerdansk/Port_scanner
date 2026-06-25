@@ -89,4 +89,85 @@ class PortScanner:
             print(f"{Fore.RED} Could not resolve hostname: {self.target}{Style.RESET_ALL}")
             return None
 
+    def scan_port(self, port):
+        """
+        Scan a single port to check if it's open.
+        
+        Args:
+            port (int): Port number to scan
+        """
+        try:
+            # Create a socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(self.timeout)
+            
+            # Attempt connection
+            result = sock.connect_ex((self.target, port))
+            
+            if result == 0:
+                # Port is open
+                service = self.COMMON_PORTS.get(port, 'UNKNOWN')
+                is_vulnerable = port in self.VULNERABLE_SERVICES
+                
+                with self.lock:
+                    self.open_ports.append(port)
+                    self.scan_results[port] = {
+                        'service': service,
+                        'vulnerable': is_vulnerable,
+                        'vulnerability_note': self.VULNERABLE_SERVICES.get(port, 'None')
+                    }
+                
+                # Try to get banner (service fingerprinting)
+                try:
+                    sock.settimeout(3)
+                    sock.send(b'HEAD / HTTP/1.0\r\n\r\n')
+                    banner = sock.recv(1024).decode('utf-8', errors='ignore')
+                    with self.lock:
+                        self.scan_results[port]['banner'] = banner[:100]
+                except:
+                    with self.lock:
+                        self.scan_results[port]['banner'] = 'No banner retrieved'
+                
+            else:
+                with self.lock:
+                    self.closed_ports.append(port)
+            
+            sock.close()
+            
+        except socket.error:
+            # Socket error, port is likely closed
+            with self.lock:
+                self.closed_ports.append(port)
+    
+    def scan_ports(self, ports):
+        """
+        Scan a list of ports using threading.
+        
+        Args:
+            ports (list): List of port numbers to scan
+        """
+        print(f"\n{Fore.CYAN}🔍 Scanning {len(ports)} ports on {self.target}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}⏱️  Timeout: {self.timeout}s | Max Threads: {self.max_threads}{Style.RESET_ALL}")
+        print("-" * 50)
+        
+        start_time = time.time()
+        
+        # Create thread pool
+        for port in ports:
+            thread = threading.Thread(target=self.scan_port, args=(port,))
+            self.threads.append(thread)
+            thread.start()
+            
+            # Limit concurrent threads
+            if len(self.threads) >= self.max_threads:
+                for t in self.threads:
+                    t.join()
+                self.threads = []
+        
+        # Wait for remaining threads
+        for thread in self.threads:
+            thread.join()
+        
+        elapsed = time.time() - start_time
+        print(f"\n{Fore.GREEN} Scan completed in {elapsed:.2f} seconds{Style.RESET_ALL}")
     
