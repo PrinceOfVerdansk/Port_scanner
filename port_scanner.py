@@ -264,4 +264,143 @@ class PortScanner:
         
         print(f"\n{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
         print(f"{Fore.GREEN}✅ Scan complete!{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}{'='*70}{Style.RESET_ALL}\n")
+        print(f"{Fore.CYAN}{'='*70}{Style.RESET_ALL}\n") 
+    
+    def get_example_targets():
+        """Return a list of example targets for testing."""
+        return [
+            'localhost',          # Your own machine
+            '192.168.1.1',       # Common router
+            'google.com',        # Public website
+            'scanme.nmap.org',   # Nmap's test host (legal to scan)
+            'github.com'         # GitHub
+        ]
+
+    def interactive_mode():
+        """Run the scanner in interactive mode."""
+        print(f"\n{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
+        print(f"{Fore.BOLD}{Fore.PURPLE}🛡️  PORT SCANNER - Blue Team Edition{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
+        print(f"\n{Fore.WHITE}Options:{Style.RESET_ALL}")
+        print("  1. Scan common ports (Top 27)")
+        print("  2. Scan port range (e.g., 1-1000)")
+        print("  3. Scan custom ports")
+        print("  4. Quick scan (Most vulnerable ports)")
+        print("  5. Use example target")
+        print("  6. Exit")
+        
+        try:
+            choice = input(f"\n{Fore.YELLOW}Select an option (1-6): {Style.RESET_ALL}").strip()
+            
+            if choice == '6':
+                print(f"\n{Fore.GREEN} Goodbye!{Style.RESET_ALL}")
+                sys.exit(0)
+            
+            # Get target
+            target = input(f"{Fore.YELLOW}Enter target (IP or hostname): {Style.RESET_ALL}").strip()
+            if not target:
+                if choice == '5':
+                    print(f"\n{Fore.CYAN}Example targets:{Style.RESET_ALL}")
+                    for i, ex in enumerate(get_example_targets(), 1):
+                        print(f"  {i}. {ex}")
+                    ex_choice = input(f"{Fore.YELLOW}Select example (1-5): {Style.RESET_ALL}").strip()
+                    try:
+                        target = get_example_targets()[int(ex_choice) - 1]
+                    except:
+                        target = 'scanme.nmap.org'
+                else:
+                    target = 'scanme.nmap.org'
+                    print(f"{Fore.YELLOW}⚠️  No target entered. Using: {target}{Style.RESET_ALL}")
+            
+            # Create scanner
+            scanner = PortScanner(target)
+            
+            # Resolve hostname
+            if not scanner.resolve_hostname():
+                return
+            
+            # Scan based on choice
+            if choice == '1':
+                scanner.scan_common_ports()
+            elif choice == '2':
+                try:
+                    range_input = input(f"{Fore.YELLOW}Enter port range (e.g., 1-1000): {Style.RESET_ALL}").strip()
+                    start, end = map(int, range_input.split('-'))
+                    scanner.scan_range(start, end)
+                except ValueError:
+                    print(f"{Fore.RED}❌ Invalid range format. Using 1-1000.{Style.RESET_ALL}")
+                    scanner.scan_range(1, 1000)
+            elif choice == '3':
+                ports_input = input(f"{Fore.YELLOW}Enter ports (comma-separated, e.g., 22,80,443): {Style.RESET_ALL}").strip()
+                try:
+                    ports = [int(p.strip()) for p in ports_input.split(',')]
+                    scanner.scan_custom(ports)
+                except ValueError:
+                    print(f"{Fore.RED}❌ Invalid port list. Using common ports.{Style.RESET_ALL}")
+                    scanner.scan_common_ports()
+            elif choice == '4':
+                # Quick scan - most vulnerable ports
+                quick_ports = [21, 22, 23, 25, 80, 110, 143, 443, 445, 1433, 3306, 3389, 5900, 8080]
+                scanner.scan_custom(quick_ports)
+            elif choice == '5':
+                scanner.scan_common_ports()
+            else:
+                print(f"{Fore.RED}❌ Invalid choice. Scanning common ports.{Style.RESET_ALL}")
+                scanner.scan_common_ports()
+            
+            # Generate report
+            scanner.generate_report()
+            
+        except KeyboardInterrupt:
+            print(f"\n\n{Fore.YELLOW}⚠️  Scan interrupted{Style.RESET_ALL}")
+            sys.exit(0)
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}")
+
+def command_line_mode():
+    """Handle command-line arguments."""
+    if len(sys.argv) < 2:
+        print(f"{Fore.YELLOW}💡 Usage: python port_scanner.py <target> [ports]{Style.RESET_ALL}")
+        print(f"   Examples:")
+        print(f"     python port_scanner.py scanme.nmap.org")
+        print(f"     python port_scanner.py 192.168.1.1 22,80,443")
+        print(f"     python port_scanner.py localhost 1-1000")
+        sys.exit(1)
+    
+    target = sys.argv[1]
+    scanner = PortScanner(target)
+    
+    if not scanner.resolve_hostname():
+        sys.exit(1)
+    
+    if len(sys.argv) >= 3:
+        ports_input = sys.argv[2]
+        if '-' in ports_input:
+            # Port range
+            start, end = map(int, ports_input.split('-'))
+            scanner.scan_range(start, end)
+        else:
+            # Comma-separated list
+            ports = [int(p.strip()) for p in ports_input.split(',')]
+            scanner.scan_custom(ports)
+    else:
+        scanner.scan_common_ports()
+    
+    scanner.generate_report()
+
+def main():
+    """Main program entry point."""
+    if len(sys.argv) > 1:
+        command_line_mode()
+    else:
+        interactive_mode()
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print(f"\n\n{Fore.YELLOW}⚠️  Operation cancelled{Style.RESET_ALL}")
+        sys.exit(0)
+    except Exception as e:
+        print(f"{Fore.RED}❌ An unexpected error occurred: {e}{Style.RESET_ALL}")
+        sys.exit(1)
