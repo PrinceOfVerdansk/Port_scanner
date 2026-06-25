@@ -182,3 +182,86 @@ class PortScanner:
         """Scan a range of ports."""
         ports = list(range(start_port, end_port + 1))
         self.scan_ports(ports)
+    
+    def scan_custom(self, ports):
+        """Scan a custom list of ports."""
+        self.scan_ports(ports)
+    
+    def generate_report(self):
+        """Generate a comprehensive scan report."""
+        print(f"\n{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
+        print(f"{Fore.BOLD}{Fore.PURPLE} PORT SCAN REPORT{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
+        
+        print(f"\n{Fore.YELLOW} SCAN SUMMARY:{Style.RESET_ALL}")
+        print(f"  Target: {self.target}")
+        print(f"  Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"  Total Ports Scanned: {len(self.open_ports) + len(self.closed_ports)}")
+        print(f"  Open Ports: {len(self.open_ports)}")
+        print(f"  Closed Ports: {len(self.closed_ports)}")
+        
+        if self.open_ports:
+            print(f"\n{Fore.GREEN}🔓 OPEN PORTS:{Style.RESET_ALL}")
+            print("-" * 70)
+            
+            # Sort ports
+            self.open_ports.sort()
+            
+            for port in self.open_ports:
+                info = self.scan_results[port]
+                service = info['service']
+                vulnerable = info['vulnerable']
+                banner = info.get('banner', 'N/A')
+                
+                # Color coding based on vulnerability
+                if vulnerable:
+                    port_color = Fore.RED
+                    vuln_tag = f"{Fore.RED}⚠️  VULNERABLE{Style.RESET_ALL}"
+                else:
+                    port_color = Fore.GREEN
+                    vuln_tag = f"{Fore.GREEN}✅ Secure{Style.RESET_ALL}"
+                
+                print(f"  {port_color}Port {port:>5}{Style.RESET_ALL} | {service:<12} | {vuln_tag}")
+                if vulnerable:
+                    print(f"          └─ {Fore.YELLOW}Note: {info['vulnerability_note']}{Style.RESET_ALL}")
+                if banner and banner != 'N/A':
+                    print(f"          └─ Banner: {banner[:60]}...")
+            
+            # Security Recommendations
+            print(f"\n{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
+            print(f"{Fore.BOLD}{Fore.GREEN}🛡️  SECURITY RECOMMENDATIONS{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
+            
+            recommendations = []
+            
+            # Check for vulnerable services
+            vulnerable_ports = [p for p in self.open_ports if p in self.VULNERABLE_SERVICES]
+            if vulnerable_ports:
+                recommendations.append(f"{Fore.RED} Vulnerable services detected on ports: {', '.join(map(str, vulnerable_ports))}")
+                recommendations.append(f"{Fore.YELLOW} Consider implementing: Service hardening, ACLs, firewall rules")
+            
+            # Check for common administrative ports
+            admin_ports = [22, 3389, 5900, 8080, 8443]
+            open_admin = [p for p in self.open_ports if p in admin_ports]
+            if open_admin:
+                recommendations.append(f"{Fore.YELLOW} Administrative ports open: {', '.join(map(str, open_admin))}")
+                recommendations.append(f"{Fore.YELLOW} Restrict access using IP whitelisting or VPN")
+            
+            # General recommendations
+            if len(self.open_ports) > 5:
+                recommendations.append(f"{Fore.YELLOW} High number of open ports detected. Review necessity.")
+            
+            recommendations.append(f"{Fore.GREEN}Implement proper firewall rules")
+            recommendations.append(f"{Fore.GREEN}Use strong authentication for all services")
+            recommendations.append(f"{Fore.GREEN}Keep all services patched and updated")
+            recommendations.append(f"{Fore.GREEN}Monitor logs for suspicious connection attempts")
+            
+            for rec in recommendations:
+                print(f"  {rec}")
+            
+        else:
+            print(f"\n{Fore.GREEN}🔒 No open ports found. Target appears secure.{Style.RESET_ALL}")
+        
+        print(f"\n{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}✅ Scan complete!{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'='*70}{Style.RESET_ALL}\n")
