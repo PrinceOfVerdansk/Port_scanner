@@ -146,8 +146,8 @@ class PortScanner:
         Args:
             ports (list): List of port numbers to scan
         """
-        print(f"\n{Fore.CYAN}🔍 Scanning {len(ports)} ports on {self.target}{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}⏱️  Timeout: {self.timeout}s | Max Threads: {self.max_threads}{Style.RESET_ALL}")
+        print(f"\n{Fore.CYAN}Scanning {len(ports)} ports on {self.target}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW} Timeout: {self.timeout}s | Max Threads: {self.max_threads}{Style.RESET_ALL}")
         print("-" * 50)
         
         start_time = time.time()
@@ -171,3 +171,14 @@ class PortScanner:
         elapsed = time.time() - start_time
         print(f"\n{Fore.GREEN} Scan completed in {elapsed:.2f} seconds{Style.RESET_ALL}")
     
+    def scan_common_ports(self):
+        """Scan the most common 20 ports."""
+        ports = [20, 21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 
+                445, 993, 995, 1433, 1521, 1723, 3306, 3389, 5432, 5900, 
+                6379, 8080, 8443, 27017]
+        self.scan_ports(ports)
+    
+    def scan_range(self, start_port, end_port):
+        """Scan a range of ports."""
+        ports = list(range(start_port, end_port + 1))
+        self.scan_ports(ports)
