@@ -1,0 +1,92 @@
+
+"""
+Port Scanner - Blue Team Edition
+Day 4 - Cybersecurity Daily Project
+
+A lightweight port scanner for network reconnaissance and security auditing.
+Can be used to identify open ports, running services, and potential vulnerabilities.
+"""
+
+import socket
+import sys
+import threading
+import time
+from datetime import datetime
+from colorama import init, Fore, Style
+
+# Initialize colorama for cross-platform colored output
+init(autoreset=True)
+
+class PortScanner:
+    """A professional port scanner with service detection capabilities."""
+    
+    # Common ports and their associated services
+    COMMON_PORTS = {
+        20: 'FTP-DATA',
+        21: 'FTP',
+        22: 'SSH',
+        23: 'TELNET',
+        25: 'SMTP',
+        53: 'DNS',
+        80: 'HTTP',
+        110: 'POP3',
+        111: 'RPCBIND',
+        135: 'MSRPC',
+        139: 'NETBIOS-SSN',
+        143: 'IMAP',
+        443: 'HTTPS',
+        445: 'MICROSOFT-DS',
+        993: 'IMAPS',
+        995: 'POP3S',
+        1433: 'MSSQL',
+        1521: 'ORACLE-DB',
+        1723: 'PPTP',
+        3306: 'MYSQL',
+        3389: 'RDP',
+        5432: 'POSTGRESQL',
+        5900: 'VNC',
+        6379: 'REDIS',
+        8080: 'HTTP-ALT',
+        8443: 'HTTPS-ALT',
+        27017: 'MONGODB'
+    }
+    
+    # Vulnerable services to flag
+    VULNERABLE_SERVICES = {
+        21: 'FTP (clear text credentials)',
+        23: 'TELNET (unencrypted)',
+        1433: 'MSSQL (default credentials risk)',
+        3306: 'MySQL (default credentials risk)',
+        3389: 'RDP (brute force target)',
+        5900: 'VNC (default credentials risk)'
+    }
+
+    def __init__(self, target, timeout=2, max_threads=50):
+        """
+        Initialize the port scanner.
+        
+        Args:
+            target (str): IP address or hostname to scan
+            timeout (int): Connection timeout in seconds
+            max_threads (int): Maximum number of concurrent threads
+        """
+        self.target = target
+        self.timeout = timeout
+        self.max_threads = max_threads
+        self.open_ports = []
+        self.closed_ports = []
+        self.scan_results = {}
+        self.threads = []
+        self.lock = threading.Lock()
+
+    def resolve_hostname(self):
+        """Resolve hostname to IP address."""
+        try:
+            ip = socket.gethostbyname(self.target)
+            print(f"{Fore.GREEN} Resolved {self.target} -> {ip}{Style.RESET_ALL}")
+            return ip
+        except socket.gaierror:
+            print(f"{Fore.RED} Could not resolve hostname: {self.target}{Style.RESET_ALL}")
+            return None
+
+    
